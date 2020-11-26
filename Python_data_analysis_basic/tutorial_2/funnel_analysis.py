@@ -197,14 +197,90 @@ df['sessionid'] = pd.Series(['sess' + str(x) for x in s])
 screens = df.groupby(["datetime", "screen"])['sessionid'].nunique().unstack().fillna(0).astype(int)
 
 screens = screens[screens.mean().sort_values(ascending=False).index]
-# print(screens[:10])
-
-plt.subplots(figsize=(17, 8))
-
-sns.heatmap(screens, annot=True, fmt="d", annot_kws={"size": 12}, cmap='Blues');
-
-plt.title("screen count daily")
-plt.tight_layout()
-plt.show()
+# # print(screens[:10])
+#
+# plt.subplots(figsize=(17, 8))
+#
+# sns.heatmap(screens, annot=True, fmt="d", annot_kws={"size": 12}, cmap='Blues');
+#
+# plt.title("screen count daily")
+# plt.tight_layout()
+# plt.show()
 
 # --------------------Pivoting을 통한 변수별 특성 탐색-----------------------
+# plt.subplots(figsize=(10,6))
+#
+# ext_action = df.groupby(["ext", "actiontype"])["sessionid"].nunique().unstack().fillna(0).astype(int)
+# sns.heatmap(ext_action, annot=True, fmt='d', annot_kws={"size":12}, cmap='Greens')
+#
+# plt.title("ext_action crosstab")
+# plt.tight_layout()
+# plt.show()
+
+# --------------------변수별 분포 및 상관 관계-----------------------
+# print(df.head(10))
+#
+# ext_by_session = df.query("actiontype == 'OPEN'").groupby(["sessionid", "ext"]).size().unstack().dropna(how='all')
+# print('-' * 100)
+# print(ext_by_session.head())
+# print('-' * 100)
+#
+# pos_by_session = df.query("actiontype=='OPEN'").groupby(['sessionid', 'documentposition']).size().unstack().dropna(
+#     how='all')
+# print('-' * 100)
+# print(pos_by_session.head(10))
+# print('-' * 100)
+#
+# exp_pos = pd.concat([ext_by_session, pos_by_session], axis=1).fillna(0)
+# print(exp_pos.head())
+#
+# print('-' * 100)
+# print(exp_pos.describe().round(2))
+#
+#
+# sns.heatmap(exp_pos.corr(), annot=True, annot_kws={"size": 12}, cmap='Blues');
+#
+# plt.title("Correlations")
+# plt.tight_layout()
+# plt.show()
+#
+# exp_pos.hist(bins= 13, color='darkblue', figsize=(16,12), grid=False)
+#
+# plt.grid(color='lightgrey', alpha=0.5, linestyle='--')
+# plt.tight_layout()
+# plt.show()
+
+# --------------------구간별 전환율-----------------------
+# print(screens.head(10))
+conver_cnt = screens.mean().apply(lambda x : int(x)).sort_values(ascending=False)
+
+# for i in range(len(conver_cnt)-1):
+#     print((conver_cnt[i+1] / (conver_cnt[i] * 1.0) * 100).round(2))
+
+conver_rt = [(conver_cnt[i+1] / (conver_cnt[i] * 1.0) * 100).round(2) for i in range(len(conver_cnt)) if i < 6]
+
+# pd.Series(conver_rt).plot(kind='bar', color='darkblue', rot=0)
+#
+# plt.title('Conver Rate (%)')
+# plt.grid(color='lightgrey', alpha=0.5, linestyle='--')
+# plt.tight_layout()
+# plt.show()
+
+fun_label = [conver_cnt.index[k] + ">" + conver_cnt.index[k+1] for k, v in enumerate(conver_cnt) if k < 6]
+
+# pd.Series(conver_rt, index=fun_label).plot(kind='bar', color = 'darkblue', rot=20, figsize=(8,5), fontsize=10)
+#
+# plt.title("Conver Rate (%)")
+# plt.grid(color='lightgrey', alpha=0.5, linestyle='--')
+# plt.tight_layout()
+# plt.show()
+
+conv_rt_tb = pd.Series(conver_rt, index=fun_label).to_frame()
+conv_rt_tb.index.name = 'Funnel'
+conv_rt_tb.columns = ['convert_rt']
+conv_rt_tb['churn_rt'] = 100 - conv_rt_tb['convert_rt']
+
+sns.heatmap(conv_rt_tb, annot=True, annot_kws={"size": 13}, cmap='Greens');
+
+plt.tight_layout()
+plt.show()
